@@ -61,8 +61,6 @@ range_week_end = pd.date_range(start_date + dt.timedelta(days=6), end_date + dt.
 if range_week_end[-1] > end_date:
     range_week_end = range_week_end[:-1].astype("str").append(pd.Index([end]))
 
-print(range_week_start)
-print(range_week_end)
 month_shortname_list = range_date.strftime("%b").unique().tolist()  # e.g. Jul, Jun
 
 # 取得google sheet資料

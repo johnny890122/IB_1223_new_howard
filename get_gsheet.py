@@ -6,7 +6,13 @@ import numpy as np
 import pandas as pd
 import pickle as pkl
 import main  # 計算月份是否需要備份用
+from google.oauth2.service_account import Credentials
+import gspread
+import time
 
+scope = ['https://www.googleapis.com/auth/spreadsheets']
+creds = Credentials.from_service_account_file("credentials.json", scopes=scope)
+gs = gspread.authorize(creds)
 
 def get_google_sheet(SCOPES, SPREADSHEET_ID, RANGE_NAME, SHEET_NAME=False):
     '''
@@ -17,43 +23,22 @@ def get_google_sheet(SCOPES, SPREADSHEET_ID, RANGE_NAME, SHEET_NAME=False):
     3. RANGE_NAME: 要抓取的範圍
     4. SHEET_NAME: 匯csv的檔名，若是False則不輸出csv，以return方式回傳
     '''
-    # creds = None
-    # if os.path.exists('token.pickle'):
-    #     with open('token.pickle', 'rb') as token:
-    #         creds = pkl.load(token)
 
-    # # If there are no (valid) credentials available, let the user log in.
-    # if not creds or not creds.valid:
-    #     if creds and creds.expired and creds.refresh_token:
-    #         creds.refresh(Request())
-    #     else:
-    #         flow = InstalledAppFlow.from_client_secrets_file('credentials.json', SCOPES)
-    #         creds = flow.run_local_server(port=0)
+    ob_gsheet = gs.open_by_url(SCOPES).worksheet("OB Daily Tracker")
+    values = pd.DataFrame(ob_gsheet.get_values()[4:])
+    header = values.iloc[0]
+    header[0] = "Unnamed: 1"
+    header[1] = 'Unnamed: 2'
+    values.rename(columns=header, inplace = True)
+    values.drop(values.index[0], inplace = True)
 
-    #     # Save the credentials for the next run
-    #     with open('token.pickle', 'wb') as token:
-    #         pkl.dump(creds, token)
+    keep_col = []
+    for v in values.columns[1:13]:
+        if v != "":
+            keep_col.append(v)
 
-    # service = build('sheets', 'v4', credentials=creds)
-    # sheet = service.spreadsheets()
-    # result = sheet.values().get(spreadsheetId=SPREADSHEET_ID,
-    #                             range=RANGE_NAME).execute()
-    # values = result.get('values', [])
-
-    # 
-    values = pd.read_excel(
-        "tmp_input/OB Daily Tracker.xlsx", 
-        sheet_name="OB Daily Tracker", 
-        skiprows=[0,1,2,3]
-    )
-    keep_col = values.columns[1:13]
     values = values[keep_col]
     values = values.rename(columns={'Unnamed: 1': '', 'Unnamed: 2': ''})
-
-    # if not values:
-    #     print('No data found.')
-    # else:
-    #     values = pd.DataFrame(values[1:], columns=values[0])
 
     if SHEET_NAME:  # 要轉出CSV
         values.to_csv('Input/api_data/{}.csv'.format(SHEET_NAME), index=False, encoding='utf_8_sig')
@@ -63,11 +48,14 @@ def get_google_sheet(SCOPES, SPREADSHEET_ID, RANGE_NAME, SHEET_NAME=False):
 
 
 def get_google_sheet_commercial(range_name_list, SCOPES, SPREADSHEET_ID, SHEET_NAME=False):
+
+    commercial_gsheet = gs.open_by_url(SCOPES)
     for i, range_name in enumerate(range_name_list):
         # values = get_google_sheet(SCOPES, SPREADSHEET_ID, range_name, False)
-        values = pd.read_excel(
-            "tmp_input/B2C S&OP Inbound_Outbound Tracking 的副本.xlsx", sheet_name=range_name, skiprows=[0], usecols=["Date", "Unnamed: 1", "IB \n(pcs)"]
-        )
+        values = pd.DataFrame(commercial_gsheet.worksheet(range_name).get_values()[1:])
+        values.rename(columns=values.iloc[0], inplace = True)
+        values.drop(values.index[0], inplace = True)
+        values = values[["Date", "", "IB \n(pcs)"]]
 
         if i == 0:
             commercial = values
@@ -80,7 +68,13 @@ def get_google_sheet_commercial(range_name_list, SCOPES, SPREADSHEET_ID, SHEET_N
 def get_google_sheet_reject(SCOPES, SPREADSHEET_ID, RANGE_NAME, SHEET_NAME=False):
     '''reject data下載後，先將空白欄位刪去'''
     # values = get_google_sheet(SCOPES, SPREADSHEET_ID, RANGE_NAME, False)
-    values = pd.read_excel("tmp_input/2022年進貨相關問題 01 ~ 03 月.xlsx", sheet_name="拒收紀錄")
+    # values = pd.read_excel("tmp_input/2022年進貨相關問題 01 ~ 03 月.xlsx", sheet_name="拒收紀錄")
+
+    reject_gsheet = gs.open_by_url(SCOPES).worksheet("拒收紀錄")
+    values = pd.DataFrame(reject_gsheet.get_values())
+    values.rename(columns=values.iloc[0], inplace = True)
+    values.drop(values.index[0], inplace = True)
+
     values = values[values.columns[0:4]]
     values = values[values['Date'] != ""]
     
@@ -94,7 +88,13 @@ def get_google_sheet_abnormal(SCOPES, SPREADSHEET_ID, RANGE_NAME, SHEET_NAME=Fal
     2. 若月份是3/6/9/12月，則將當季資料備份
     '''
     # values = get_google_sheet(SCOPES, SPREADSHEET_ID, RANGE_NAME, False)
-    values = pd.read_excel("tmp_input/2022年進貨相關問題 01 ~ 03 月.xlsx", sheet_name="倉庫回報表格", skiprows=[0,1,2], usecols=["Inbound ID"])
+    # values = pd.read_excel("tmp_input/2022年進貨相關問題 01 ~ 03 月.xlsx", sheet_name="倉庫回報表格", skiprows=[0,1,2], usecols=["Inbound ID"])
+
+    abnormal_gsheet = gs.open_by_url(SCOPES).worksheet("倉庫回報表格")
+    values = pd.DataFrame(abnormal_gsheet.get_values()[3:])
+    values.rename(columns=values.iloc[0], inplace = True)
+    values = values[["Inbound ID"]]
+    values.drop(values.index[0], inplace = True)
 
     hist_data = pd.read_csv("Input/historical_data/his_abnormal.csv", encoding='utf_8_sig')
 
@@ -127,18 +127,17 @@ def get_label_data(label_gdoc, label_scopes_dict, label_spreadsheet_id_dict, lab
     print(label_spreadsheet_id_dict)
     print(label_date_range)
 
-
     for i, date in enumerate(label_date_range):
         date_str = date[:4] + date[5:7] + date[8:10]  # get sheet name 'YYYYmmdd'
-        # label_gdoc.SCOPES = [label_scopes_dict[date[:7]]]
-        # label_gdoc.SPREADSHEET_ID = [label_spreadsheet_id_dict[date[:7]]]
-        # label_gdoc.RANGE_NAME = ['{}!A:G'.format(date_str)]
-        day_label = pd.read_excel("tmp_input/新版貼標紀錄備份.xlsx", sheet_name=date_str.replace("-", ""))
-        # day_label = get_google_sheet(*label_gdoc.trans())
+        label_gdoc.SCOPES = label_scopes_dict[date[:7]]
+        label_gsheet = gs.open_by_url(label_gdoc.SCOPES).worksheet(date_str.replace("-", ""))
+
+        day_label = pd.DataFrame(label_gsheet.get_values())
+
         if i == 0:
             label_data = day_label
         else:
             label_data = label_data.append(day_label, ignore_index=True)
-
+        time.sleep(5)
     label_data.to_csv('Input/api_data/{}.csv'.format(csv_name), index=False, encoding='utf_8_sig')
     print('Download {} data SUCCEED'.format(csv_name))

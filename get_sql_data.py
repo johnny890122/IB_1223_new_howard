@@ -22,6 +22,7 @@ def get_hour_data(start_date, sheet_name):
                                 'cert': 'ssl/client-cert.pem',
                                 'check_hostname': False})
 
+
     # sql script
     script = r'''
     SELECT
