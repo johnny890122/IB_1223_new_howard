@@ -8,15 +8,16 @@ import main  # 取得年份
 
 def dash_date_parser(date):
     '''把M/D或Y/M/D轉成日期格式，例如7/9轉成datetime.datetime(2021, 7, 9)'''
-    year, month, day = date.split(' ')[0].split("-")
-    # if len(month_and_day) == 2:  # 沒有年份資料
-    #     year = main.start_date.year
-    #     month = int(month_and_day[0])
-    #     day = int(month_and_day[1])
-    # else:  # 有年份資料
-    #     year = int(month_and_day[0])
-    #     month = int(month_and_day[1])
-    #     day = int(month_and_day[2])
+    # year, month, day = date.split(' ')[0].split("-")
+    month_and_day = date.split("/")
+    if len(month_and_day) == 2:  # 沒有年份資料
+        year = main.start_date.year
+        month = int(month_and_day[0])
+        day = int(month_and_day[1])
+    else:  # 有年份資料
+        year = int(month_and_day[0])
+        month = int(month_and_day[1])
+        day = int(month_and_day[2])
     return dt.date(int(year), int(month), int(day))
 
 
@@ -26,6 +27,7 @@ def get_next_monday_str(date_str):
     Input: str，本週週一日期
     Output: str，下週週一日期
     '''
+    print(date_str)
     print(date_str)
     last_monday = dt.datetime.strptime(date_str, '%Y-%m-%d')  # 本次最後一週的星期一
     next_monday = dt.datetime.strftime(last_monday + dt.timedelta(days=7), '%Y-%m-%d')  # 下一週的星期一，轉成字串形式
@@ -57,8 +59,8 @@ def last_week_to_pickle(week_list, avg_name, store_name):
     2. avg_name: 各表中平均的名稱，例如'W AVG', 'AVG'
     3. store_name: 要儲存的檔名
     '''
+
     if avg_name in week_list[-1].columns:  # 最後一週有平均，代表只要抓「最後一週的W AVG」
-        print(week_list[-1].columns[0])
         next_monday = get_next_monday_str(week_list[-1].columns[0])
         store_W_1_AVG = {next_monday: week_list[-1][avg_name]}
 

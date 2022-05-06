@@ -43,8 +43,8 @@ Processin/Output:
     (2). week_{YYYY-MM-DD}_{productivity/sla/daily_tracker}: 儲存最後一次輸入的半週資料供下次使用
 '''
 
-start = '2022-02-28'
-end = '2022-03-31'
+start = '2022-03-28'
+end = '2022-04-30'
 first_accumulated_backlog = 0  # 計算IB Metric使用
 weighted = {'Arrival Check': 1625 / 31,
             'Counting': 1625 / 407,
@@ -118,12 +118,12 @@ reject_gdoc.CSV_NAME = ['reject']
 # 貼標紀錄
 label_gdoc = gdoc_information()
 label_scopes_dict = {  # 抓label資料用
-    '2022-02': 'https://docs.google.com/spreadsheets/d/1GUvKT8BxFsHLwgM2Jptmkpc0pIZMetoVtIUIet5UxB8',
     '2022-03': 'https://docs.google.com/spreadsheets/d/1GUvKT8BxFsHLwgM2Jptmkpc0pIZMetoVtIUIet5UxB8',
+    '2022-04': 'https://docs.google.com/spreadsheets/d/1GUvKT8BxFsHLwgM2Jptmkpc0pIZMetoVtIUIet5UxB8',
 }
 label_spreadsheet_id_dict = {  # 抓label資料用
-    '2022-02': '1GUvKT8BxFsHLwgM2Jptmkpc0pIZMetoVtIUIet5UxB8',
     '2022-03': '1GUvKT8BxFsHLwgM2Jptmkpc0pIZMetoVtIUIet5UxB8',
+    '2022-04': '1GUvKT8BxFsHLwgM2Jptmkpc0pIZMetoVtIUIet5UxB8',
 }
 
 
@@ -153,6 +153,7 @@ if __name__ == '__main__':
         '''
         # reject = pd.read_csv("Input/api_data/reject.csv", parse_dates=["Date"], encoding="utf_8_sig")
         reject = pd.read_csv("Input/api_data/reject.csv", parse_dates=['Date'], date_parser=assist_funcs.dash_date_parser, encoding='utf_8_sig')
+
         ob_daily = pd.read_csv("Input/api_data/OB_daily.csv", encoding='utf_8_sig').rename(columns={'Unnamed: 0': 'Date'}).set_index('Date')
         # ob_daily.index = pd.to_datetime(ob_daily.index, errors='coerce').astype('str')
         commercial = pd.read_csv("Input/api_data/commercial.csv", parse_dates=['Date'], date_parser=assist_funcs.dash_date_parser, encoding='utf_8_sig')
@@ -160,7 +161,7 @@ if __name__ == '__main__':
         qc_qty = pd.read_csv("Input/qc_qty.csv", parse_dates=['_col0'], encoding='utf_8_sig')
         hour_data = pd.read_csv("Input/api_data/hour_data.csv", parse_dates=['cdate'], encoding='utf_8_sig')
         hour_data = hour_data[(hour_data['cdate'] >= start_date) & (hour_data['cdate'] <= end_date)]
-        label_data = pd.read_csv("Input/api_data/label.csv", parse_dates=['開始', '結束'], encoding='utf_8_sig')
+        label_data = pd.read_csv("Input/api_data/label.csv", parse_dates=['1', '2'], encoding='utf_8_sig')
         abnormal = pd.read_csv("Input/api_data/abnormal.csv", encoding='utf_8_sig')  # 得到整年資料
         new_weekly_report = pd.read_csv("Input/new_weekly_report.csv",
                                         parse_dates=["Inbound_Date", "Actual_arrived_time", "counting_Start", "counting_End", "QC_Start", "QC_End",
@@ -196,7 +197,9 @@ if __name__ == '__main__':
             # Step 3-1: IB target orders(Column C~L)
             # Column C
             target_target = commercial.rename(columns={'Unnamed: 1': 'Week', 'IB \n(pcs)': 'Target PCS'})
-            target_target['Target PCS'] = target_target['Target PCS'].astype('int')
+            target_target['Target PCS'] = target_target['Target PCS'].apply(lambda x: x.replace(",", "")).astype('int')
+            target_target['Date'] = target_target['Date'].apply(lambda x: dt.datetime.strptime(str(dt.date.today().year) + "/" + x, '%Y/%m/%d'))
+
             target_target = target_target[(target_target['Date'] >= start_date) & (target_target['Date'] <= end_date)]  # 篩選日期區間
             target_target['Date'] = target_target['Date'].astype('str')
 
@@ -250,6 +253,8 @@ if __name__ == '__main__':
             ib_metric['Abs actual-target Projection gap'] = np.abs(ib_metric['actual-target Projection gap'].values)
             ib_metric.set_index('Date', inplace=True)
 
+
+
             # Step 3-2: IB actual arrived orders(Column M~Y)
             # Column M~N
             act_arrived_ot = new_weekly_report[new_weekly_report['Inbound_Date'].values == new_weekly_report['Arrival_date'].values]\
@@ -261,6 +266,8 @@ if __name__ == '__main__':
 
             ib_metric = ib_metric.merge(act_arrived_ot, left_index=True, right_index=True, how='left')
             ib_metric['OT%'] = ib_metric['OT SKU'].values / ib_metric['PMS Schduled SKU'].values  # Column O
+
+
 
             # Column P
             act_arrived_if_pcs = new_weekly_report[new_weekly_report['expected_qty'].values == new_weekly_report['putaway_qty'].values]\
@@ -309,6 +316,7 @@ if __name__ == '__main__':
             ib_metric = ib_metric.merge(act_arrived_abnormal[['Abnormal order']], left_index=True, right_index=True, how='left')  # Column W
             ib_metric['Abnormal%'] = ib_metric['Abnormal order'].values / ib_metric['Arrived SKU'].values  # Column X
             ib_metric = ib_metric.merge(act_arrived_abnormal[['Abnormal PCS']], left_index=True, right_index=True, how='left')  # Column Y
+
 
             # Step 3-3 Warehouse performance(Column Z~AS)
             # Column Z~AC
@@ -404,6 +412,7 @@ if __name__ == '__main__':
             ib_metric['normal order D receive pcs%'] = np.where(  # Column AS
                 ib_metric['Normal PCS'].values == 0, np.nan, ib_metric['normal order D receive pcs'].values / ib_metric['Normal PCS'].values)
 
+
             # Step 3-4: Backlog(Column AT~AW)
             # Column AU
             backlog_net_daily_nr = np.where(
@@ -420,6 +429,7 @@ if __name__ == '__main__':
                                                       'Net Daily AB backog pcs': backlog_net_daily_ab},
                                                      index=ib_metric.index), on='Date', how='left')
             ib_metric.fillna(value={'Net Daily Backlog pcs': 0, 'Net Daily NR backlog pcs': 0, 'Net Daily AB backog pcs': 0}, inplace=True)
+
 
             # Column AW
             acc_arrival = new_weekly_report[new_weekly_report['訂單Tag'].values == "NR"]\
@@ -694,6 +704,7 @@ if __name__ == '__main__':
             ops_time_per_order = ops_time_per_order[ops_type_list].T
 
             # Step 4-7 輸出pickle
+            print(productivity_week)
             assist_funcs.last_week_to_pickle(productivity_week, 'W AVG', 'productivity')
 
             return ops_time_per_order, productivity, productivity_result
@@ -828,13 +839,12 @@ if __name__ == '__main__':
                                          .rename(columns={'Overall_weighted_IPH': 'Overall IPH'})
             daily_tracker = daily_tracker.T
 
-            print(daily_tracker)
+
 
             # Step 6-2: 計算每週daily tracker平均
             tracker_week = []
             for week in range(len(range_week_start)):
                 week_data = daily_tracker.loc[:, range_week_start[week]: range_week_end[week]]
-
                 # if week_data.shape[1] == 7:  # 有整週可算平均
 
                 week_data['AVG'] = week_data.iloc[:, :-1].mean(axis=1)
@@ -861,6 +871,7 @@ if __name__ == '__main__':
             tracker_result.rename(columns={'AVG ': 'AVG', 'W-1 ': 'W-1', 'Change% ': 'Change%'}, inplace=True)
 
             # Step 6-4: 輸出pickle
+            print(tracker_week, "c")
             assist_funcs.last_week_to_pickle(tracker_week, 'AVG', 'daily_tracker')
 
             return tracker_result.T

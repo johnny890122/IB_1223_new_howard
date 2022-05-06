@@ -127,17 +127,24 @@ def get_label_data(label_gdoc, label_scopes_dict, label_spreadsheet_id_dict, lab
     print(label_spreadsheet_id_dict)
     print(label_date_range)
 
+
     for i, date in enumerate(label_date_range):
         date_str = date[:4] + date[5:7] + date[8:10]  # get sheet name 'YYYYmmdd'
         label_gdoc.SCOPES = label_scopes_dict[date[:7]]
         label_gsheet = gs.open_by_url(label_gdoc.SCOPES).worksheet(date_str.replace("-", ""))
 
-        day_label = pd.DataFrame(label_gsheet.get_values())
-
+        day_label = pd.DataFrame(label_gsheet.get_values()[1:])
         if i == 0:
             label_data = day_label
         else:
             label_data = label_data.append(day_label, ignore_index=True)
-        time.sleep(5)
+        time.sleep(3)
+
+    #     # label_data.rename(columns= header)
+    # print(label_data)
+    # print(label_data.index)
+    # print(label_data.columns)
+
     label_data.to_csv('Input/api_data/{}.csv'.format(csv_name), index=False, encoding='utf_8_sig')
     print('Download {} data SUCCEED'.format(csv_name))
+
