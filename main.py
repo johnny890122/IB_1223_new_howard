@@ -135,12 +135,12 @@ if __name__ == '__main__':
         # Step 1 抓取google sheet、SQL資料
         # '''
         time0 = time.time()
-        get_gsheet.get_google_sheet_commercial(commercial_gdoc_range_name_list, *commercial_gdoc.trans())
-        get_gsheet.get_google_sheet(*ob_gdoc.trans())
-        get_gsheet.get_google_sheet_abnormal(*abnormal_gdoc.trans())
-        get_gsheet.get_google_sheet_reject(*reject_gdoc.trans())
-        get_gsheet.get_label_data(label_gdoc, label_scopes_dict, label_spreadsheet_id_dict, range_date.astype('str'), 'label')
-        get_sql_data.get_hour_data(start, "hour_data")
+        # get_gsheet.get_google_sheet_commercial(commercial_gdoc_range_name_list, *commercial_gdoc.trans())
+        # get_gsheet.get_google_sheet(*ob_gdoc.trans())
+        # get_gsheet.get_google_sheet_abnormal(*abnormal_gdoc.trans())
+        # get_gsheet.get_google_sheet_reject(*reject_gdoc.trans())
+        # get_gsheet.get_label_data(label_gdoc, label_scopes_dict, label_spreadsheet_id_dict, range_date.astype('str'), 'label')
+        # get_sql_data.get_hour_data(start, "hour_data")
         time1 = time.time()
         print('Step 1 抓取Google Sheet資料 SUCCEED    Spend {:.4f} seconds'.format(time1 - time0))
 
@@ -601,7 +601,7 @@ if __name__ == '__main__':
             throughput.index = throughput.index.astype('str')
 
             # Step 4-3 合併working hours和throughput，初步計算每天IPH
-            productivity = throughput.merge(working_hours, left_index=True, right_index=True, suffixes=['_Throughput', '_Working hour'])
+            productivity = throughput.merge(working_hours, left_index=True, right_index=True, suffixes=['_Throughput', '_Working hour'], how="outer")
             for col in productivity_columns:
                 productivity['{}_IPH'.format(col)] = np.where(
                     productivity['{}_Working hour'.format(col)].values == 0,
@@ -624,7 +624,6 @@ if __name__ == '__main__':
             productivity_week = []
             for week in range(len(range_week_start)):
                 week_data = productivity.loc[:, range_week_start[week]: range_week_end[week]]
-
                 # if week_data.shape[1] == 7:  # 有整週可算平均
 
                 # 1. IPH & Overall_weighted_IPH:
@@ -660,7 +659,6 @@ if __name__ == '__main__':
                 #     print(week_data)
                 #     exit()
                 productivity_week.append(week_data)  # 每一週的資料都要加至productivity_week，不論是否有7天
-
             # Step 4-5 合併每週資料
             for week in range(len(range_week_start)):
                 if week == 0:
@@ -668,6 +666,7 @@ if __name__ == '__main__':
                 else:
                     productivity_result = productivity_result.merge(productivity_week[week], left_index=True, right_index=True, suffixes=[' ', ' '])
             productivity_result.rename(columns={'W AVG ': 'W AVG', 'W-1 AVG ': 'W-1 AVG', 'Change ': 'Change'}, inplace=True)
+
 
             # Step 4-6: operating time per order
             ops_hours = working_hours[['Arrival Check', 'Counting', 'QC', 'Labeling', 'Received', 'Putaway']]\
@@ -820,31 +819,36 @@ if __name__ == '__main__':
             # Inbound orders
             daily_tracker = ib_metric[['Target PCS', '拒收 PCS', 'Arrived PCS',
                                        'Counting PCS', 'QC PCS', 'Receive PCS', 'Putaway PCS']]
+
+
             daily_tracker.rename(columns={'拒收 PCS': 'Reject', 'Arrived PCS': 'Actual Arrived', 'Counting PCS': 'Actual Counting',
                                           'QC PCS': 'Actual QC', 'Receive PCS': 'Actual Received', 'Putaway PCS': 'Actual putaway'}, inplace=True)
             daily_tracker['Actual arrived-Target Gap'] = np.where(
                 daily_tracker['Target PCS'] == 0, np.nan,
                 ((daily_tracker['Reject'] + daily_tracker['Actual Arrived']) / daily_tracker['Target PCS']) - 1)
+
             daily_tracker = daily_tracker[['Target PCS', 'Reject', 'Actual Arrived', 'Actual arrived-Target Gap', 'Actual Counting',
                                            'Actual QC', 'Actual Received', 'Actual putaway']]
 
             # Working Hour
             ib_py_hour = pd.crosstab(hour_data['cdate'], hour_data['working_code_l2'], values=hour_data['total_hour'], aggfunc=np.sum).fillna(0)
+
             ib_py_hour['站點打卡 IB hr'] = ib_py_hour[['ARRIVAL', 'COUNTING', 'LABELING', 'QC', 'RECEIVED']].sum(axis=1)
             ib_py_hour['站點打卡 PY hr'] = ib_py_hour['PUTAWAY']
-            daily_tracker = daily_tracker.merge(ib_py_hour[['站點打卡 IB hr', '站點打卡 PY hr']], left_index=True, right_index=True)
+
+            daily_tracker = daily_tracker.merge(ib_py_hour[['站點打卡 IB hr', '站點打卡 PY hr']], left_index=True, right_index=True, how="outer")
 
             # Productivity
-            daily_tracker = daily_tracker.merge(productivity.T[['Overall_weighted_IPH']], left_index=True, right_index=True)\
-                                         .rename(columns={'Overall_weighted_IPH': 'Overall IPH'})
-            daily_tracker = daily_tracker.T
+            daily_tracker = daily_tracker.merge(productivity.T[['Overall_weighted_IPH']], left_index=True, right_index=True, how="outer").rename(columns={'Overall_weighted_IPH': 'Overall IPH'})
 
+            daily_tracker = daily_tracker.T
 
 
             # Step 6-2: 計算每週daily tracker平均
             tracker_week = []
             for week in range(len(range_week_start)):
                 week_data = daily_tracker.loc[:, range_week_start[week]: range_week_end[week]]
+                
                 # if week_data.shape[1] == 7:  # 有整週可算平均
 
                 week_data['AVG'] = week_data.iloc[:, :-1].mean(axis=1)
@@ -862,12 +866,13 @@ if __name__ == '__main__':
                     week_data['Change%'] = np.where(week_data['W-1'].values == 0, 0, week_data['AVG'].values / week_data['W-1'].values - 1)
                 tracker_week.append(week_data)
 
+
             # Step 6-3 合併每週資料
             for week in range(len(range_week_start)):
                 if week == 0:
                     tracker_result = tracker_week[week]
                 else:
-                    tracker_result = tracker_result.merge(tracker_week[week], left_index=True, right_index=True, suffixes=[' ', ' '])
+                    tracker_result = tracker_result.merge(tracker_week[week], left_index=True, right_index=True, suffixes=[' ', ' '], how="outer")
             tracker_result.rename(columns={'AVG ': 'AVG', 'W-1 ': 'W-1', 'Change% ': 'Change%'}, inplace=True)
 
             # Step 6-4: 輸出pickle
