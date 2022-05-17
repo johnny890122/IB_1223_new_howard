@@ -103,7 +103,7 @@ ob_gdoc.CSV_NAME = ['OB_daily']
 
 # 倉庫回報表格: "20XX年進貨相關問題 XX ~ XX 月"
 abnormal_gdoc = gdoc_information()
-abnormal_gdoc.SCOPES = ['https://docs.google.com/spreadsheets/d/10ylvlT6KzZ9kQi4-VTmx5V7FIVOJs-MaSphuLqoAA5M']
+abnormal_gdoc.SCOPES = ['https://docs.google.com/spreadsheets/d/1LlNRK3kfWjB23usJHRDaVTrX5wLfs3lFjtnn_zqDNKA']
 abnormal_gdoc.SPREADSHEET_ID = ['10ylvlT6KzZ9kQi4-VTmx5V7FIVOJs-MaSphuLqoAA5M']
 abnormal_gdoc.RANGE_NAME = ['倉庫回報表格!D3:D']  # 表頭有兩行，請從第二行表頭開始抓
 abnormal_gdoc.CSV_NAME = ['abnormal']

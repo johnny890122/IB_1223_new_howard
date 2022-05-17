@@ -91,7 +91,7 @@ def get_google_sheet_abnormal(SCOPES, SPREADSHEET_ID, RANGE_NAME, SHEET_NAME=Fal
     # values = pd.read_excel("tmp_input/2022年進貨相關問題 01 ~ 03 月.xlsx", sheet_name="倉庫回報表格", skiprows=[0,1,2], usecols=["Inbound ID"])
 
     abnormal_gsheet = gs.open_by_url(SCOPES).worksheet("倉庫回報表格")
-    values = pd.DataFrame(abnormal_gsheet.get_values()[3:])
+    values = pd.DataFrame(abnormal_gsheet.get_values()[2:])
     values.rename(columns=values.iloc[0], inplace = True)
     values = values[["Inbound ID"]]
     values.drop(values.index[0], inplace = True)
