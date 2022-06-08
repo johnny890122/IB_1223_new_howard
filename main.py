@@ -43,8 +43,8 @@ Processin/Output:
     (2). week_{YYYY-MM-DD}_{productivity/sla/daily_tracker}: 儲存最後一次輸入的半週資料供下次使用
 '''
 
-start = '2022-03-28'
-end = '2022-04-30'
+start = '2022-04-25'
+end = '2022-05-31'
 first_accumulated_backlog = 0  # 計算IB Metric使用
 weighted = {'Arrival Check': 1625 / 31,
             'Counting': 1625 / 407,
@@ -118,12 +118,12 @@ reject_gdoc.CSV_NAME = ['reject']
 # 貼標紀錄
 label_gdoc = gdoc_information()
 label_scopes_dict = {  # 抓label資料用
-    '2022-03': 'https://docs.google.com/spreadsheets/d/1GUvKT8BxFsHLwgM2Jptmkpc0pIZMetoVtIUIet5UxB8',
     '2022-04': 'https://docs.google.com/spreadsheets/d/1GUvKT8BxFsHLwgM2Jptmkpc0pIZMetoVtIUIet5UxB8',
+    '2022-05': 'https://docs.google.com/spreadsheets/d/1GUvKT8BxFsHLwgM2Jptmkpc0pIZMetoVtIUIet5UxB8',
 }
 label_spreadsheet_id_dict = {  # 抓label資料用
-    '2022-03': '1GUvKT8BxFsHLwgM2Jptmkpc0pIZMetoVtIUIet5UxB8',
     '2022-04': '1GUvKT8BxFsHLwgM2Jptmkpc0pIZMetoVtIUIet5UxB8',
+    '2022-05': '1GUvKT8BxFsHLwgM2Jptmkpc0pIZMetoVtIUIet5UxB8',
 }
 
 
@@ -135,12 +135,12 @@ if __name__ == '__main__':
         # Step 1 抓取google sheet、SQL資料
         # '''
         time0 = time.time()
-        # get_gsheet.get_google_sheet_commercial(commercial_gdoc_range_name_list, *commercial_gdoc.trans())
-        # get_gsheet.get_google_sheet(*ob_gdoc.trans())
-        # get_gsheet.get_google_sheet_abnormal(*abnormal_gdoc.trans())
-        # get_gsheet.get_google_sheet_reject(*reject_gdoc.trans())
-        # get_gsheet.get_label_data(label_gdoc, label_scopes_dict, label_spreadsheet_id_dict, range_date.astype('str'), 'label')
-        # get_sql_data.get_hour_data(start, "hour_data")
+        get_gsheet.get_google_sheet_commercial(commercial_gdoc_range_name_list, *commercial_gdoc.trans())
+        get_gsheet.get_google_sheet(*ob_gdoc.trans())
+        get_gsheet.get_google_sheet_abnormal(*abnormal_gdoc.trans())
+        get_gsheet.get_google_sheet_reject(*reject_gdoc.trans())
+        get_gsheet.get_label_data(label_gdoc, label_scopes_dict, label_spreadsheet_id_dict, range_date.astype('str'), 'label')
+        get_sql_data.get_hour_data(start, "hour_data")
         time1 = time.time()
         print('Step 1 抓取Google Sheet資料 SUCCEED    Spend {:.4f} seconds'.format(time1 - time0))
 
@@ -167,7 +167,14 @@ if __name__ == '__main__':
                                         parse_dates=["Inbound_Date", "Actual_arrived_time", "counting_Start", "counting_End", "QC_Start", "QC_End",
                                                      "Receive_start", "Receive_End", "Putaway_start", "Putaway_End", "Arrival_date", "Counting_date",
                                                      "QC_date", "Receive_date", "Putaway_date"], encoding='utf_8_sig')
+        
+        new_weekly_report = new_weekly_report[["po_inbound_id", "Inbound_Date", "platform_num", "Actual_arrived_time", "expected_qty", "counting_qty", "QC_qty", "recv_qty", "box_num", "Arrival_date", "QC_date", "order_complete", "putaway_qty", "Counting_date", "Putaway_End", "Receive_End", "Arrival_to_counting_start", "after_QC_to_receive_start", "after_counting_to_QC_start", "receive_start_to_end", "after_receive_to_putaway_start", "putaway_start_to_end"]]
+        
+        new_weekly_report["Receive_date"] = pd.to_datetime(new_weekly_report["Receive_End"], format='%Y-%m-%d', errors='coerce')
+        new_weekly_report["Putaway_date"] = pd.to_datetime(new_weekly_report["Putaway_End"], format='%Y-%m-%d', errors='coerce')
+
         new_weekly_report['回報異常'] = new_weekly_report['po_inbound_id'].isin(set(abnormal['Inbound ID']))
+
         new_weekly_report['訂單Tag'] = np.where(
             new_weekly_report['order_complete'] == 'V', np.where(
                 new_weekly_report['回報異常'], 'AB', np.where(
@@ -177,6 +184,10 @@ if __name__ == '__main__':
                 )
             ), np.nan
         )
+
+        # print(new_weekly_report['Putaway_date'])
+        # print(new_weekly_report['Arrival_date'])
+
         # Step 8 會用到
         new_weekly_report['Arrival_Hour'] = new_weekly_report['Actual_arrived_time'].dt.hour
         new_weekly_report['Putaway_minus_Arrival'] = (new_weekly_report['Putaway_date'] - new_weekly_report['Arrival_date']).dt.days
