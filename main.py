@@ -135,12 +135,12 @@ if __name__ == '__main__':
         # Step 1 抓取google sheet、SQL資料
         # '''
         time0 = time.time()
-        get_gsheet.get_google_sheet_commercial(commercial_gdoc_range_name_list, *commercial_gdoc.trans())
-        get_gsheet.get_google_sheet(*ob_gdoc.trans())
-        get_gsheet.get_google_sheet_abnormal(*abnormal_gdoc.trans())
-        get_gsheet.get_google_sheet_reject(*reject_gdoc.trans())
-        get_gsheet.get_label_data(label_gdoc, label_scopes_dict, label_spreadsheet_id_dict, range_date.astype('str'), 'label')
-        get_sql_data.get_hour_data(start, "hour_data")
+        # get_gsheet.get_google_sheet_commercial(commercial_gdoc_range_name_list, *commercial_gdoc.trans())
+        # get_gsheet.get_google_sheet(*ob_gdoc.trans())
+        # get_gsheet.get_google_sheet_abnormal(*abnormal_gdoc.trans())
+        # get_gsheet.get_google_sheet_reject(*reject_gdoc.trans())
+        # get_gsheet.get_label_data(label_gdoc, label_scopes_dict, label_spreadsheet_id_dict, range_date.astype('str'), 'label')
+        # get_sql_data.get_hour_data(start, "hour_data")
         time1 = time.time()
         print('Step 1 抓取Google Sheet資料 SUCCEED    Spend {:.4f} seconds'.format(time1 - time0))
 
@@ -170,8 +170,11 @@ if __name__ == '__main__':
         
         new_weekly_report = new_weekly_report[["po_inbound_id", "Inbound_Date", "platform_num", "Actual_arrived_time", "expected_qty", "counting_qty", "QC_qty", "recv_qty", "box_num", "Arrival_date", "QC_date", "order_complete", "putaway_qty", "Counting_date", "Putaway_End", "Receive_End", "Arrival_to_counting_start", "after_QC_to_receive_start", "after_counting_to_QC_start", "receive_start_to_end", "after_receive_to_putaway_start", "putaway_start_to_end"]]
         
-        new_weekly_report["Receive_date"] = pd.to_datetime(new_weekly_report["Receive_End"], format='%Y-%m-%d', errors='coerce')
-        new_weekly_report["Putaway_date"] = pd.to_datetime(new_weekly_report["Putaway_End"], format='%Y-%m-%d', errors='coerce')
+        new_weekly_report["Receive_date"] = new_weekly_report["Receive_End"].dt.strftime('%Y-%m-%d')
+        new_weekly_report["Receive_date"] = pd.to_datetime(new_weekly_report["Receive_date"], errors='coerce')
+
+        new_weekly_report["Putaway_date"] = new_weekly_report["Putaway_End"].dt.strftime('%Y-%m-%d')
+        new_weekly_report["Putaway_date"] = pd.to_datetime(new_weekly_report["Putaway_date"], errors='coerce')
 
         new_weekly_report['回報異常'] = new_weekly_report['po_inbound_id'].isin(set(abnormal['Inbound ID']))
 
@@ -185,8 +188,6 @@ if __name__ == '__main__':
             ), np.nan
         )
 
-        # print(new_weekly_report['Putaway_date'])
-        # print(new_weekly_report['Arrival_date'])
 
         # Step 8 會用到
         new_weekly_report['Arrival_Hour'] = new_weekly_report['Actual_arrived_time'].dt.hour
@@ -337,7 +338,6 @@ if __name__ == '__main__':
                 'Receive': ['Receive_date', 'recv_qty', 'Receive PCS'],
                 'Putaway': ['Putaway_date', 'putaway_qty', 'Putaway PCS']
             }
-
             for key, value in perf_dict.items():
                 key_perf = new_weekly_report.groupby([value[0]])[value[1]].agg([np.sum]).reset_index()\
                                             .rename(columns={value[0]: 'Date', 'sum': value[2]})\
@@ -359,6 +359,7 @@ if __name__ == '__main__':
 
             same_day_putaway = new_weekly_report[new_weekly_report['Arrival_date'].astype('str') == new_weekly_report['adj_Putaway_date']]
             same_day_receive = new_weekly_report[new_weekly_report['Arrival_date'].astype('str') == new_weekly_report['adj_Receive_date']]
+
             # Column AD~AG
             same_day_arrived = same_day_putaway\
                 .groupby(['adj_Putaway_date'])['putaway_qty'].agg(['count', np.sum]).reset_index()\
@@ -494,7 +495,12 @@ if __name__ == '__main__':
             ib_metric['Accumulated backlog'] = accumulated_backlog
 
             # Step 3-5 D+1 Performance(Column AX~BI)
-            # Column AX~BA
+            # Column AX~BA      
+            # new_weekly_report['Putaway_date'] = new_weekly_report['Putaway_date'].dt.strftime("%Y-%m-%d")
+            # new_weekly_report['Putaway_date'] = pd.to_datetime(new_weekly_report['Putaway_date'], errors='coerce')
+
+            # print(new_weekly_report['Putaway_date'], new_weekly_report['Arrival_date'])
+            # exit()
             normal_order_D_1_comp = new_weekly_report[
                 (new_weekly_report['訂單Tag'] == 'NR') &
                 ((new_weekly_report['Putaway_date'] == new_weekly_report['Arrival_date']) |
