@@ -140,7 +140,7 @@ if __name__ == '__main__':
         #get_gsheet.get_google_sheet_abnormal(*abnormal_gdoc.trans())
         #get_gsheet.get_google_sheet_reject(*reject_gdoc.trans())
         #get_gsheet.get_label_data(label_gdoc, label_scopes_dict, label_spreadsheet_id_dict, range_date.astype('str'), 'label')
-        get_sql_data.get_hour_data(start, "hour_data")
+        # get_sql_data.get_hour_data(start, "hour_data")
         time1 = time.time()
         print('Step 1 抓取Google Sheet資料 SUCCEED    Spend {:.4f} seconds'.format(time1 - time0))
 
@@ -158,7 +158,7 @@ if __name__ == '__main__':
         # ob_daily.index = pd.to_datetime(ob_daily.index, errors='coerce').astype('str')
         commercial = pd.read_csv("Input/api_data/commercial.csv", parse_dates=['Date'], date_parser=assist_funcs.dash_date_parser, encoding='utf_8_sig')
         commercial = pd.read_csv("Input/api_data/commercial.csv", parse_dates=['Date'], encoding='utf_8_sig')
-        qc_qty = pd.read_csv("Input/qc_qty.csv", parse_dates=['_col0'], encoding='utf_8_sig')
+        qc_qty = pd.read_csv("Input/qc_qty.csv", parse_dates=['ctime'], encoding='utf_8_sig')
         hour_data = pd.read_csv("Input/api_data/hour_data.csv", parse_dates=['cdate'], encoding='utf_8_sig')
         hour_data = hour_data[(hour_data['cdate'] >= start_date) & (hour_data['cdate'] <= end_date)]
         label_data = pd.read_csv("Input/api_data/label.csv", parse_dates=['1', '2'], encoding='utf_8_sig')
