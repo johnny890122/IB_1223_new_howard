@@ -87,12 +87,18 @@ def get_google_sheet_abnormal(SCOPES, SPREADSHEET_ID, RANGE_NAME, SHEET_NAME=Fal
     1. abnormal data下載後，將其與his_abnormal資料合併後再匯出成csv
     2. 若月份是3/6/9/12月，則將當季資料備份
     '''
-    # values = get_google_sheet(SCOPES, SPREADSHEET_ID, RANGE_NAME, False)
-    # values = pd.read_excel("tmp_input/2022年進貨相關問題 01 ~ 03 月.xlsx", sheet_name="倉庫回報表格", skiprows=[0,1,2], usecols=["Inbound ID"])
 
     abnormal_gsheet = gs.open_by_url(SCOPES).worksheet("倉庫回報表格")
-    values = pd.DataFrame(abnormal_gsheet.get_values()[2:])
-    values.rename(columns=values.iloc[0], inplace = True)
+    abs_raw = abnormal_gsheet.get_values()
+
+    header_row_idx = 0
+    while abs_raw[header_row_idx][0] != "日期":
+        header_row_idx += 1  
+
+    abnormal_header = abs_raw[header_row_idx]
+    values = pd.DataFrame(abs_raw[header_row_idx + 1:])
+    values.columns = abnormal_header
+
     values = values[["Inbound ID"]]
     values.drop(values.index[0], inplace = True)
 

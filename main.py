@@ -43,8 +43,8 @@ Processin/Output:
     (2). week_{YYYY-MM-DD}_{productivity/sla/daily_tracker}: 儲存最後一次輸入的半週資料供下次使用
 '''
 
-start = '2022-04-25'
-end = '2022-05-31'
+start = '2022-05-30'
+end = '2022-06-30'
 first_accumulated_backlog = 0  # 計算IB Metric使用
 weighted = {'Arrival Check': 1625 / 31,
             'Counting': 1625 / 407,
@@ -118,12 +118,12 @@ reject_gdoc.CSV_NAME = ['reject']
 # 貼標紀錄
 label_gdoc = gdoc_information()
 label_scopes_dict = {  # 抓label資料用
-    '2022-04': 'https://docs.google.com/spreadsheets/d/1GUvKT8BxFsHLwgM2Jptmkpc0pIZMetoVtIUIet5UxB8',
     '2022-05': 'https://docs.google.com/spreadsheets/d/1GUvKT8BxFsHLwgM2Jptmkpc0pIZMetoVtIUIet5UxB8',
+    '2022-06': 'https://docs.google.com/spreadsheets/d/1GUvKT8BxFsHLwgM2Jptmkpc0pIZMetoVtIUIet5UxB8',
 }
 label_spreadsheet_id_dict = {  # 抓label資料用
-    '2022-04': '1GUvKT8BxFsHLwgM2Jptmkpc0pIZMetoVtIUIet5UxB8',
     '2022-05': '1GUvKT8BxFsHLwgM2Jptmkpc0pIZMetoVtIUIet5UxB8',
+    '2022-06': '1GUvKT8BxFsHLwgM2Jptmkpc0pIZMetoVtIUIet5UxB8',
 }
 
 
@@ -135,12 +135,12 @@ if __name__ == '__main__':
         # Step 1 抓取google sheet、SQL資料
         # '''
         time0 = time.time()
-        # get_gsheet.get_google_sheet_commercial(commercial_gdoc_range_name_list, *commercial_gdoc.trans())
-        # get_gsheet.get_google_sheet(*ob_gdoc.trans())
-        # get_gsheet.get_google_sheet_abnormal(*abnormal_gdoc.trans())
-        # get_gsheet.get_google_sheet_reject(*reject_gdoc.trans())
-        # get_gsheet.get_label_data(label_gdoc, label_scopes_dict, label_spreadsheet_id_dict, range_date.astype('str'), 'label')
-        # get_sql_data.get_hour_data(start, "hour_data")
+        get_gsheet.get_google_sheet_commercial(commercial_gdoc_range_name_list, *commercial_gdoc.trans())
+        get_gsheet.get_google_sheet(*ob_gdoc.trans())
+        get_gsheet.get_google_sheet_abnormal(*abnormal_gdoc.trans())
+        get_gsheet.get_google_sheet_reject(*reject_gdoc.trans())
+        get_gsheet.get_label_data(label_gdoc, label_scopes_dict, label_spreadsheet_id_dict, range_date.astype('str'), 'label')
+        get_sql_data.get_hour_data(start, "hour_data")
         time1 = time.time()
         print('Step 1 抓取Google Sheet資料 SUCCEED    Spend {:.4f} seconds'.format(time1 - time0))
 
