@@ -135,11 +135,11 @@ if __name__ == '__main__':
         # Step 1 抓取google sheet、SQL資料
         # '''
         time0 = time.time()
-        get_gsheet.get_google_sheet_commercial(commercial_gdoc_range_name_list, *commercial_gdoc.trans())
-        get_gsheet.get_google_sheet(*ob_gdoc.trans())
-        get_gsheet.get_google_sheet_abnormal(*abnormal_gdoc.trans())
-        get_gsheet.get_google_sheet_reject(*reject_gdoc.trans())
-        get_gsheet.get_label_data(label_gdoc, label_scopes_dict, label_spreadsheet_id_dict, range_date.astype('str'), 'label')
+        #get_gsheet.get_google_sheet_commercial(commercial_gdoc_range_name_list, *commercial_gdoc.trans())
+        #get_gsheet.get_google_sheet(*ob_gdoc.trans())
+        #get_gsheet.get_google_sheet_abnormal(*abnormal_gdoc.trans())
+        #get_gsheet.get_google_sheet_reject(*reject_gdoc.trans())
+        #get_gsheet.get_label_data(label_gdoc, label_scopes_dict, label_spreadsheet_id_dict, range_date.astype('str'), 'label')
         get_sql_data.get_hour_data(start, "hour_data")
         time1 = time.time()
         print('Step 1 抓取Google Sheet資料 SUCCEED    Spend {:.4f} seconds'.format(time1 - time0))
@@ -167,9 +167,9 @@ if __name__ == '__main__':
                                         parse_dates=["Inbound_Date", "Actual_arrived_time", "counting_Start", "counting_End", "QC_Start", "QC_End",
                                                      "Receive_start", "Receive_End", "Putaway_start", "Putaway_End", "Arrival_date", "Counting_date",
                                                      "QC_date", "Receive_date", "Putaway_date"], encoding='utf_8_sig')
-        
+
         new_weekly_report = new_weekly_report[["po_inbound_id", "Inbound_Date", "platform_num", "Actual_arrived_time", "expected_qty", "counting_qty", "QC_qty", "recv_qty", "box_num", "Arrival_date", "QC_date", "order_complete", "putaway_qty", "Counting_date", "Putaway_End", "Receive_End", "Arrival_to_counting_start", "after_QC_to_receive_start", "after_counting_to_QC_start", "receive_start_to_end", "after_receive_to_putaway_start", "putaway_start_to_end"]]
-        
+
         new_weekly_report["Receive_date"] = new_weekly_report["Receive_End"].dt.strftime('%Y-%m-%d')
         new_weekly_report["Receive_date"] = pd.to_datetime(new_weekly_report["Receive_date"], errors='coerce')
 
@@ -495,7 +495,7 @@ if __name__ == '__main__':
             ib_metric['Accumulated backlog'] = accumulated_backlog
 
             # Step 3-5 D+1 Performance(Column AX~BI)
-            # Column AX~BA      
+            # Column AX~BA
             # new_weekly_report['Putaway_date'] = new_weekly_report['Putaway_date'].dt.strftime("%Y-%m-%d")
             # new_weekly_report['Putaway_date'] = pd.to_datetime(new_weekly_report['Putaway_date'], errors='coerce')
 
@@ -636,7 +636,7 @@ if __name__ == '__main__':
             # 把Input/week_{}_productivity.pickle中的productivity資料匯入，並將productivity原本那幾天的資料刪除
             productivity = assist_funcs.replace_to_old_data(productivity, 'productivity')
             productivity = productivity.reindex(sorted(productivity.columns), axis=1)
-            
+
             # Step 4-4 計算每週平均
             productivity_week = []
             for week in range(len(range_week_start)):
@@ -865,7 +865,7 @@ if __name__ == '__main__':
             tracker_week = []
             for week in range(len(range_week_start)):
                 week_data = daily_tracker.loc[:, range_week_start[week]: range_week_end[week]]
-                
+
                 # if week_data.shape[1] == 7:  # 有整週可算平均
 
                 week_data['AVG'] = week_data.iloc[:, :-1].mean(axis=1)
